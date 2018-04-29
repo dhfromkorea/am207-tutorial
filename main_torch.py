@@ -29,7 +29,7 @@ class DeepFFN(nn.Module):
                        gamma=0.55,
                        eta=0.3,
                        grad_clip=False,
-                       grad_clip_type="value",
+                       grad_clip_norm=2,
                        grad_clip_value=100.0,
                        init_weight_type="good"
                        ):
@@ -79,7 +79,7 @@ class DeepFFN(nn.Module):
 
 
         self._grad_clip = grad_clip
-        self._grad_clip_type = grad_clip_type
+        self._grad_clip_norm = grad_clip_norm
         self._grad_clip_value = grad_clip_value
 
         if set_gpu:
@@ -116,11 +116,7 @@ class DeepFFN(nn.Module):
             loss.backward()
 
             if self._grad_clip:
-                if self._grad_clip_type == "value":
-                    clip_norm = float('inf')
-                else:
-                    clip_norm = 2
-                clip_grad_norm(self.model.parameters(), self._grad_clip_value, clip_norm)
+                clip_grad_norm(self.model.parameters(), self._grad_clip_value, self._grad_clip_norm)
 
             self.opt.step()
 
@@ -271,11 +267,24 @@ def main():
     gamma = 0.55
 
     grad_clip = True
-    grad_clip_type = "value"
+    #grad_clip_norm = 2
+    #grad_clip_norm = float("inf")
+    grad_clip_norm = 1
     grad_clip_value = 10.0
 
     init_weight_type = "good"
     grad_noise = True
+
+    if batch_size == 60000:
+        print("GD")
+    else:
+        print("SGD")
+
+    if grad_noise:
+        print("using noise")
+    else:
+        print("NOT using noise")
+
 
 
 
@@ -310,7 +319,7 @@ def main():
                   gamma=gamma,
                   eta=eta,
                   grad_clip=grad_clip,
-                  grad_clip_type=grad_clip_type,
+                  grad_clip_norm=grad_clip_norm,
                   grad_clip_value=grad_clip_value,
                   init_weight_type=init_weight_type)
 
