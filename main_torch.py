@@ -129,7 +129,7 @@ class DeepFFN(nn.Module):
 
             # debug
             if np.isnan(loss.data[0]):
-                print("gradient exploded or vanished: try clipping gradient")
+                raise Exception("gradient exploded or vanished: try clipping gradient")
 
             if batch_idx % 100 == 0:
                 sys.stdout.flush()
@@ -137,14 +137,6 @@ class DeepFFN(nn.Module):
                     epoch + 1, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.data[0]))
 
-
-            # debug
-            #for p, n in zip(self.model.parameters(), self.model._all_weights[0]):
-            #    if n[:6] == 'weight':
-            #        print('===========\ngradient:{}\n----------\n{}'.format(n,p.grad))
-
-
-            #total_loss += loss.data[0]
             loss_list.append(loss.data[0])
 
         #return total_loss/len(train_loader)
@@ -260,8 +252,8 @@ class DeepFFN(nn.Module):
                 module.bias.data.zero_()
             elif self._init_weight_type == "simple":
                 # gaussian (0, 0.1^2)
-                module.weight.data.normal_(0, 0.1)
-                module.bias.data.normal_(0, 0.1)
+                torch.nn.init.normal(module.weight, mean=0, std=0.1)
+                torch.nn.init.normal(module.bias, mean=0, std=0.1)
             else:
                 pass
 
@@ -376,9 +368,10 @@ if __name__ == "__main__":
     - [v] init, simple, bad, good
     - [ ] add dropout
     - [v] grad clipping (both by value and norm)
-    - [ ] monitor grad
     - [ ] cross validate with hyperparm
     - [v] add argparser for experiments
+    - [ ] monitor grad
+    - [ ] check simple and bad init if correctly implemented
 
     """
 
