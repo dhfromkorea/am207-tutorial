@@ -3,18 +3,22 @@ hello!
 
 """
 
+import os
 import sys
+import pickle
 import argparse
 
 import torch
-import torchvision.datasets as dsets
-import torchvision.transforms as transforms
 import torch.nn as nn
-from torch.nn.utils import clip_grad_norm
 import torch.nn.functional as F
 from torch.autograd import Variable
+import torchvision.datasets as dsets
+from torch.nn.utils import clip_grad_norm
+import torchvision.transforms as transforms
+
 import numpy as np
 
+DATA_PATH = "data"
 
 class DeepFFN(nn.Module):
 
@@ -101,7 +105,8 @@ class DeepFFN(nn.Module):
 
         """
         self.model.train()
-        total_loss = 0.0
+        #total_loss = 0.0
+        loss_list = []
         for batch_idx, (data, target) in enumerate(train_loader):
             if self.set_gpu:
                 data, target = Variable(data).cuda(), Variable(target).cuda()
@@ -122,15 +127,28 @@ class DeepFFN(nn.Module):
             self.opt.step()
             self._step += 1
 
+            # debug
+            if np.isnan(loss.data[0]):
+                print("gradient exploded or vanished: try clipping gradient")
 
             if batch_idx % 100 == 0:
                 sys.stdout.flush()
                 sys.stdout.write('\rTrain Epoch: {:<2} [{:<5}/{:<5} ({:<2.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, batch_idx * len(data), len(train_loader.dataset),
+                    epoch + 1, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.data[0]))
-            total_loss += loss.data[0]
 
-        return total_loss/len(train_loader)
+
+            # debug
+            #for p, n in zip(self.model.parameters(), self.model._all_weights[0]):
+            #    if n[:6] == 'weight':
+            #        print('===========\ngradient:{}\n----------\n{}'.format(n,p.grad))
+
+
+            #total_loss += loss.data[0]
+            loss_list.append(loss.data[0])
+
+        #return total_loss/len(train_loader)
+        return np.mean(loss_list), loss_list
 
 
     def validate(self, val_loader):
@@ -279,6 +297,8 @@ def main(args):
     init_weight_type = args.init_weight_type
     grad_noise = args.grad_noise
 
+    exp_id = args.exp_id
+
 
     # prepare data
     train_dataset = dsets.MNIST(root='./data',
@@ -317,12 +337,16 @@ def main(args):
     res = {}
     res["loss_train"] = []
     res["loss_val"] = []
-    for epoch in range(1, n_epoch + 1):
-        loss_t = ffn.train(epoch, train_loader)
+    for epoch in range(n_epoch):
+        loss_t, loss_list_t = ffn.train(epoch, train_loader)
         res["loss_train"].append(loss_t)
 
         loss_v, misclassified_samples = ffn.validate(val_loader)
         res["loss_val"].append(loss_v)
+
+    save_path = os.path.join(DATA_PATH, exp_id + ".pkl")
+    with open(save_path, "wb") as f:
+        pickle.dump(res, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def parse_args():
@@ -337,6 +361,7 @@ def parse_args():
     parser.add_argument('--grad_clip_norm', type=int, default=2, help='norm of the gradient clipping, default: l2')
     parser.add_argument('--grad_clip_value', type=float, default=10.0, help='the gradient clipping value')
     parser.add_argument('--init_weight_type', type=str, default="good", choices=["good", "simple", "bad"], help='weight init scheme')
+    parser.add_argument('--exp_id', type=str, default="", help='experiment id')
     parser.add_argument('--cuda', action='store_true', help='enables cuda')
     parser.add_argument('--outf', default='data', help='folder to output images and model checkpoints')
     return parser
