@@ -273,9 +273,9 @@ def main():
     gamma = 0.55
 
     grad_clip = True
-    #grad_clip_norm = 2
+    grad_clip_norm = 2
     #grad_clip_norm = float("inf")
-    grad_clip_norm = 1
+    #grad_clip_norm = 1
     grad_clip_value = 10.0
 
     init_weight_type = "good"
