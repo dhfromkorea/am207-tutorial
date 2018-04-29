@@ -328,7 +328,7 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=1, help='input batch size')
-    parser.add_argument('--n_epoch', type=int, default=100, help='number of epochs')
+    parser.add_argument('--n_epoch', type=int, default=10, help='number of epochs')
     parser.add_argument('--lr', type=float, default=0.01, help='learning rate, default=0.01')
     parser.add_argument('--grad_noise', action='store_true', help='add gradient noise')
     parser.add_argument('--eta', type=float, default=0.01, choices=[0.01, 0.3, 1.0], help='eta')
