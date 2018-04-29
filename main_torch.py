@@ -4,6 +4,7 @@ hello!
 """
 
 import sys
+import argparse
 
 import torch
 import torchvision.datasets as dsets
@@ -247,7 +248,7 @@ class DeepFFN(nn.Module):
                 pass
 
 
-def main():
+def main(args):
     """TODO: Docstring for main.
 
     Parameters
@@ -265,34 +266,18 @@ def main():
     torch.manual_seed(0)
 
     # hyperparam
-    n_epoch = 500
-    batch_size = 60000
-    set_gpu = True
-    eta_list = [0.01, 0.3, 1.0]
-    eta = eta_list[0]
-    gamma = 0.55
+    n_epoch = args.n_epoch
+    batch_size = args.batch_size
+    set_gpu = args.cuda
+    eta = args.eta
+    gamma = args.gamma
 
-    grad_clip = True
-    grad_clip_norm = 2
-    #grad_clip_norm = float("inf")
-    #grad_clip_norm = 1
-    grad_clip_value = 10.0
+    grad_clip = args.grad_clip
+    grad_clip_norm = args.grad_clip_norm
+    grad_clip_value = args.grad_clip_value
 
-    init_weight_type = "good"
-    grad_noise = True
-
-    if batch_size == 60000:
-        print("GD")
-    else:
-        print("SGD")
-
-    if grad_noise:
-        print("using noise")
-    else:
-        print("NOT using noise")
-
-
-
+    init_weight_type = args.init_weight_type
+    grad_noise = args.grad_noise
 
 
     # prepare data
@@ -340,6 +325,22 @@ def main():
         res["loss_val"].append(loss_v)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--batch_size', type=int, default=1, help='input batch size')
+    parser.add_argument('--n_epoch', type=int, default=100, help='number of epochs')
+    parser.add_argument('--lr', type=float, default=0.01, help='learning rate, default=0.01')
+    parser.add_argument('--grad_noise', action='store_true', help='add gradient noise')
+    parser.add_argument('--eta', type=float, default=0.01, choices=[0.01, 0.3, 1.0], help='eta')
+    parser.add_argument('--gamma', type=float, default=0.55, help='set gamme for guassian noise')
+    parser.add_argument('--grad_clip', action='store_true', help='clip gradient')
+    parser.add_argument('--grad_clip_norm', type=int, default=2, help='norm of the gradient clipping, default: l2')
+    parser.add_argument('--grad_clip_value', type=float, default=10.0, help='the gradient clipping value')
+    parser.add_argument('--init_weight_type', type=str, default="good", choices=["good", "simple", "bad"], help='weight init scheme')
+    parser.add_argument('--cuda', action='store_true', help='enables cuda')
+    parser.add_argument('--outf', default='data', help='folder to output images and model checkpoints')
+    return parser
+
 
 if __name__ == "__main__":
     """
@@ -352,6 +353,21 @@ if __name__ == "__main__":
     - [v] grad clipping (both by value and norm)
     - [ ] monitor grad
     - [ ] cross validate with hyperparm
+    - [v] add argparser for experiments
 
     """
-    main()
+
+    args = parse_args().parse_args()
+
+
+
+    print("hello world! \n")
+
+    for arg in vars(args):
+        print(arg, getattr(args, arg))
+
+    if torch.cuda.is_available() and not args.cuda:
+        print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+
+    print("\ngood luck! \n")
+    main(args)
