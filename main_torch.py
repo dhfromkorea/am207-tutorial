@@ -105,8 +105,8 @@ class DeepFFN(nn.Module):
 
         """
         self.model.train()
-        #total_loss = 0.0
-        loss_list = []
+        total_loss = 0.0
+        #loss_list = []
         for batch_idx, (data, target) in enumerate(train_loader):
             if self.set_gpu:
                 data, target = Variable(data).cuda(), Variable(target).cuda()
@@ -137,10 +137,11 @@ class DeepFFN(nn.Module):
                     epoch + 1, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.data[0]))
 
-            loss_list.append(loss.data[0])
+            #loss_list.append(loss.data[0])
+            total_loss += loss.data[0]
 
-        #return total_loss/len(train_loader)
-        return np.mean(loss_list), loss_list
+        return total_loss/len(train_loader)
+        #return np.mean(loss_list), loss_list
 
 
     def validate(self, val_loader):
@@ -160,7 +161,6 @@ class DeepFFN(nn.Module):
         self.model.eval()
         val_loss = 0
         correct = 0
-        misclassified_samples = []
 
         for data, target in val_loader:
             if self.set_gpu:
@@ -172,20 +172,16 @@ class DeepFFN(nn.Module):
             loss_ = self.criterion(output, target).data[0]
             val_loss += loss_ # sum up batch loss
             pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
-            pred_label = pred.cpu().numpy()[0][0]
-            target_label = target.cpu().data.numpy()[0]
-
-            if pred_label != target_label:
-                misclassified = (data, pred_label, target_label)
-                misclassified_samples.append(misclassified)
-
             correct += pred.eq(target.data.view_as(pred)).sum()
+
         val_loss /= len(val_loader.dataset)
+
+        accuracy = 100. * correct / len(val_loader.dataset)
 
         sys.stdout.write('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n\n'.format(
             val_loss, correct, len(val_loader.dataset),
-            100. * correct / len(val_loader.dataset)))
-        return val_loss, misclassified_samples
+            accuracy))
+        return val_loss, accuracy
 
 
     def _compute_grad_noise(self, grad):
@@ -327,14 +323,17 @@ def main(args):
                   init_weight_type=init_weight_type)
 
     res = {}
-    res["loss_train"] = []
-    res["loss_val"] = []
+    res["train_loss"] = []
+    res["val_loss"] = []
+    res["val_accuracy"] = []
     for epoch in range(n_epoch):
-        loss_t, loss_list_t = ffn.train(epoch, train_loader)
-        res["loss_train"].append(loss_t)
+        #loss_t, loss_list_t = ffn.train(epoch, train_loader)
+        loss_t = ffn.train(epoch, train_loader)
+        res["train_loss"].append(loss_t)
 
-        loss_v, misclassified_samples = ffn.validate(val_loader)
-        res["loss_val"].append(loss_v)
+        loss_v, acc_v = ffn.validate(val_loader)
+        res["val_loss"].append(loss_v)
+        res["val_accuracy"].append(acc_v)
 
     save_path = os.path.join(DATA_PATH, exp_id + ".pkl")
     with open(save_path, "wb") as f:
@@ -372,6 +371,12 @@ if __name__ == "__main__":
     - [v] add argparser for experiments
     - [ ] monitor grad
     - [ ] check simple and bad init if correctly implemented
+
+
+    problems
+
+    - too slow
+    - no gradient clipping -> vanishing and exploding...
 
     """
 
