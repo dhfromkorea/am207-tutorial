@@ -119,6 +119,7 @@ class DeepFFN(nn.Module):
                 clip_grad_norm(self.model.parameters(), self._grad_clip_value, self._grad_clip_norm)
 
             self.opt.step()
+            self._step += 1
 
 
             if batch_idx % 100 == 0:
@@ -191,6 +192,8 @@ class DeepFFN(nn.Module):
 
         # make this a variable
         std = self._eta / (1 + self._step)**self._gamma
+        print("std", std)
+        print("step", self._step)
         return Variable(grad.data.new(grad.size()).normal_(0, std=std))
 
 
@@ -208,6 +211,9 @@ class DeepFFN(nn.Module):
         """
         _, _, grad_i = grad_i_t[0], grad_i_t[1], grad_i_t[2]
         noise = self._compute_grad_noise(grad_i)
+        print("noise avg", noise.mean())
+        print("grad avg", grad_i.mean())
+        print("grad norm", torch.norm(grad_i, self._grad_clip_norm))
         return (grad_i_t[0], grad_i_t[1], grad_i + noise)
 
 
