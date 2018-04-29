@@ -9,6 +9,7 @@ import torch
 import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 import torch.nn as nn
+from torch.nn.utils import clip_grad_norm
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
@@ -26,7 +27,10 @@ class DeepFFN(nn.Module):
                        set_gpu=False,
                        grad_noise=True,
                        gamma=0.55,
-                       eta=0.3):
+                       eta=0.3,
+                       grad_clip=False,
+                       grad_clip_type="value",
+                       grad_clip_value=100.0):
         """TODO: to be defined1.
 
         Parameters
@@ -45,19 +49,23 @@ class DeepFFN(nn.Module):
 
         self.model = nn.Sequential()
         self.model.add_module("input", nn.Linear(input_dim, hidden_dim))
-        for i in range(n_layer):
-            self.model.add_module("fc".format(i), nn.Linear(hidden_dim, hidden_dim))
-            self.model.add_module("relu".format(i), nn.ReLU())
-
-        self.model.add_module("output", nn.Linear(hidden_dim, output_dim))
+        for i in range(n_layer - 1):
+            self.model.add_module("fc{}".format(i+1), nn.Linear(hidden_dim, hidden_dim))
+            self.model.add_module("relu{}".format(i+1), nn.ReLU())
+        self.model.add_module("fc{}".format(n_layer), nn.Linear(hidden_dim, output_dim))
 
         self.opt = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
+        # output layer implicitly defined by this
         self.criterion = nn.CrossEntropyLoss()
 
         self._step = 0
         self.grad_noise = grad_noise
         self._gamma = gamma
         self._eta = eta
+
+        self._grad_clip = grad_clip
+        self._grad_clip_type = grad_clip_type
+        self._grad_clip_value = grad_clip_value
 
         if set_gpu:
             self.cuda()
@@ -94,6 +102,13 @@ class DeepFFN(nn.Module):
                 loss.register_hook(self.add_grad_noise)
 
             loss.backward()
+            if self._grad_clip:
+                if self._grad_clip_type == "value":
+                    clip_norm = float('inf')
+                else:
+                    clip_norm = 2
+                clip_grad_norm(self.model.parameters(), self._grad_clip_value, clip_norm)
+
             self.opt.step()
             self._step += 1
 
@@ -210,6 +225,11 @@ def main():
     eta = eta_list[1]
     gamma = 0.55
 
+    grad_clip = True
+    grad_clip_type = "value"
+    grad_clip_value = 100.0
+
+
 
 
     # prepare data
@@ -240,7 +260,10 @@ def main():
                   set_gpu=set_gpu,
                   grad_noise=True,
                   gamma=gamma,
-                  eta=eta)
+                  eta=eta,
+                  grad_clip=grad_clip,
+                  grad_clip_type=grad_clip_type,
+                  grad_clip_value=grad_clip_value)
 
     res = {}
     res["loss_train"] = []
@@ -259,9 +282,11 @@ if __name__ == "__main__":
     todo
     - [v] cpu
     - [v] gpu compatible
+    - [v] add gradient noise
     - [ ] init, simple, bad, good
     - [ ] add dropout
-    - [ ] grad clipping
+    - [v] grad clipping (both by value and norm)
+    - [ ] monitor grad
     - [ ] cross validate with hyperparm
 
     """
