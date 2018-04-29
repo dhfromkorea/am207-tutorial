@@ -30,7 +30,9 @@ class DeepFFN(nn.Module):
                        eta=0.3,
                        grad_clip=False,
                        grad_clip_type="value",
-                       grad_clip_value=100.0):
+                       grad_clip_value=100.0,
+                       init_weight_type="good"
+                       ):
         """TODO: to be defined1.
 
         Parameters
@@ -53,6 +55,12 @@ class DeepFFN(nn.Module):
             self.model.add_module("fc{}".format(i+1), nn.Linear(hidden_dim, hidden_dim))
             self.model.add_module("relu{}".format(i+1), nn.ReLU())
         self.model.add_module("fc{}".format(n_layer), nn.Linear(hidden_dim, output_dim))
+
+        self._init_weight_type = init_weight_type
+        self.model.apply(self.initialize_weight)
+        # initialize weight
+        #for m in self.model.modules():
+        #    self.initialize_weight(m)
 
         self.opt = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
         # output layer implicitly defined by this
@@ -201,12 +209,43 @@ class DeepFFN(nn.Module):
         return grad + self._compute_grad_noise(grad)
 
 
+    def initialize_weight(self, module):
+        """TODO: Docstring for initialize_weight.
+
+        Parameters
+        ----------
+        module : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        classname = module.__class__.__name__
+        if classname.find("Linear") != -1:
+            if self._init_weight_type == "good":
+                # he 2015
+                torch.nn.init.kaiming_normal(module.weight, mode='fan_out')
+                # it seems you don't initialize bias
+            elif self._init_weight_type == "bad":
+                # zero init
+                module.weight.data.fill_(0)
+                module.bias.data.zero_()
+            elif self._init_weight_type == "simple":
+                # gaussian (0, 0.1^2)
+                module.weight.data.normal_(0, 0.1)
+                module.bias.data.normal_(0, 0.1)
+            else:
+                pass
+
+
 def main():
     """TODO: Docstring for main.
 
     Parameters
     ----------
     arg1 : TODO
+
 
     Returns
     -------
@@ -219,7 +258,7 @@ def main():
 
     # hyperparam
     n_epoch = 20
-    batch_size = 2**6
+    batch_size = 1
     set_gpu = True
     eta_list = [0.01, 0.3, 1.0]
     eta = eta_list[1]
@@ -228,6 +267,8 @@ def main():
     grad_clip = True
     grad_clip_type = "value"
     grad_clip_value = 100.0
+
+    init_weight_type = "good"
 
 
 
@@ -263,7 +304,8 @@ def main():
                   eta=eta,
                   grad_clip=grad_clip,
                   grad_clip_type=grad_clip_type,
-                  grad_clip_value=grad_clip_value)
+                  grad_clip_value=grad_clip_value,
+                  init_weight_type=init_weight_type)
 
     res = {}
     res["loss_train"] = []
@@ -283,7 +325,7 @@ if __name__ == "__main__":
     - [v] cpu
     - [v] gpu compatible
     - [v] add gradient noise
-    - [ ] init, simple, bad, good
+    - [v] init, simple, bad, good
     - [ ] add dropout
     - [v] grad clipping (both by value and norm)
     - [ ] monitor grad
