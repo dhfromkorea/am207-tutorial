@@ -58,9 +58,8 @@ class DeepFFN(nn.Module):
 
         self._init_weight_type = init_weight_type
         self.model.apply(self.initialize_weight)
-        # initialize weight
-        #for m in self.model.modules():
-        #    self.initialize_weight(m)
+
+
 
         self.opt = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
         # output layer implicitly defined by this
@@ -70,6 +69,14 @@ class DeepFFN(nn.Module):
         self.grad_noise = grad_noise
         self._gamma = gamma
         self._eta = eta
+
+        if self.grad_noise:
+            for m in self.model.modules():
+
+                classname = m.__class__.__name__
+                if classname.find("Linear") != -1:
+                    m.register_backward_hook(self.add_grad_noise)
+
 
         self._grad_clip = grad_clip
         self._grad_clip_type = grad_clip_type
@@ -106,10 +113,8 @@ class DeepFFN(nn.Module):
             output = self.model(data)
             loss = self.criterion(output, target)
 
-            if self.grad_noise:
-                loss.register_hook(self.add_grad_noise)
-
             loss.backward()
+
             if self._grad_clip:
                 if self._grad_clip_type == "value":
                     clip_norm = float('inf')
@@ -118,7 +123,7 @@ class DeepFFN(nn.Module):
                 clip_grad_norm(self.model.parameters(), self._grad_clip_value, clip_norm)
 
             self.opt.step()
-            self._step += 1
+
 
             if batch_idx % 100 == 0:
                 sys.stdout.flush()
@@ -189,12 +194,11 @@ class DeepFFN(nn.Module):
         """
 
         # make this a variable
-
         std = self._eta / (1 + self._step)**self._gamma
         return Variable(grad.data.new(grad.size()).normal_(0, std=std))
 
 
-    def add_grad_noise(self, grad):
+    def add_grad_noise(self, module, grad_i_t, grad_o):
         """TODO: Docstring for add_noise.
 
         Parameters
@@ -206,7 +210,9 @@ class DeepFFN(nn.Module):
         TODO
 
         """
-        return grad + self._compute_grad_noise(grad)
+        _, _, grad_i = grad_i_t[0], grad_i_t[1], grad_i_t[2]
+        noise = self._compute_grad_noise(grad_i)
+        return (grad_i_t[0], grad_i_t[1], grad_i + noise)
 
 
     def initialize_weight(self, module):
@@ -257,18 +263,19 @@ def main():
     torch.manual_seed(0)
 
     # hyperparam
-    n_epoch = 20
-    batch_size = 1
+    n_epoch = 500
+    batch_size = 60000
     set_gpu = True
     eta_list = [0.01, 0.3, 1.0]
-    eta = eta_list[1]
+    eta = eta_list[0]
     gamma = 0.55
 
     grad_clip = True
     grad_clip_type = "value"
-    grad_clip_value = 100.0
+    grad_clip_value = 10.0
 
     init_weight_type = "good"
+    grad_noise = True
 
 
 
@@ -299,7 +306,7 @@ def main():
                   n_layer=20,
                   learning_rate=1e-2,
                   set_gpu=set_gpu,
-                  grad_noise=True,
+                  grad_noise=grad_noise,
                   gamma=gamma,
                   eta=eta,
                   grad_clip=grad_clip,
