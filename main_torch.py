@@ -24,7 +24,9 @@ class DeepFFN(nn.Module):
                        n_layer=20,
                        learning_rate=1e-3,
                        set_gpu=False,
-                       grad_noise=True):
+                       grad_noise=True,
+                       gamma=0.55,
+                       eta=0.3):
         """TODO: to be defined1.
 
         Parameters
@@ -51,6 +53,11 @@ class DeepFFN(nn.Module):
 
         self.opt = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
         self.criterion = nn.CrossEntropyLoss()
+
+        self._step = 0
+        self.grad_noise = grad_noise
+        self._gamma = gamma
+        self._eta = eta
 
         if set_gpu:
             self.cuda()
@@ -84,10 +91,11 @@ class DeepFFN(nn.Module):
             loss = self.criterion(output, target)
 
             if self.grad_noise:
-                loss.register_hook(lambda g : g + noise)
+                loss.register_hook(self.add_grad_noise)
 
             loss.backward()
             self.opt.step()
+            self._step += 1
 
             if batch_idx % 100 == 0:
                 sys.stdout.flush()
@@ -144,7 +152,26 @@ class DeepFFN(nn.Module):
         return val_loss, misclassified_samples
 
 
-    def add_noise(self, arg1):
+    def _compute_grad_noise(self, grad):
+        """TODO: Docstring for function.
+
+        Parameters
+        ----------
+        arg1 : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+
+        # make this a variable
+
+        std = self._eta / (1 + self._step)**self._gamma
+        return Variable(grad.data.new(grad.size()).normal_(0, std=std))
+
+
+    def add_grad_noise(self, grad):
         """TODO: Docstring for add_noise.
 
         Parameters
@@ -156,7 +183,7 @@ class DeepFFN(nn.Module):
         TODO
 
         """
-        pass
+        return grad + self._compute_grad_noise(grad)
 
 
 def main():
@@ -179,6 +206,10 @@ def main():
     n_epoch = 20
     batch_size = 2**6
     set_gpu = True
+    eta_list = [0.01, 0.3, 1.0]
+    eta = eta_list[1]
+    gamma = 0.55
+
 
 
     # prepare data
@@ -207,7 +238,9 @@ def main():
                   n_layer=20,
                   learning_rate=1e-2,
                   set_gpu=set_gpu,
-                  grad_noise=True)
+                  grad_noise=True,
+                  gamma=gamma,
+                  eta=eta)
 
     res = {}
     res["loss_train"] = []
