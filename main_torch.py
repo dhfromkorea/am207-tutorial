@@ -21,7 +21,6 @@ import numpy as np
 DATA_PATH = "data"
 
 class DeepFFN(nn.Module):
-
     """20 hidden-layer deep feedforward network """
 
     def __init__(self, input_dim,
@@ -302,11 +301,14 @@ def main(args):
 
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                batch_size=batch_size,
-                                               shuffle=True)
+                                               shuffle=True,
+                                               num_workers=args.n_worker)
+
 
     val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
-                                              batch_size=1,
-                                              shuffle=False)
+                                             batch_size=len(val_dataset),
+                                             shuffle=False,
+                                             num_workers=args.n_worker)
 
     ffn = DeepFFN(input_dim=28*28,
                   hidden_dim=50,
@@ -335,6 +337,7 @@ def main(args):
         res["val_loss"].append(loss_v)
         res["val_accuracy"].append(acc_v)
 
+
     save_path = os.path.join(DATA_PATH, exp_id + ".pkl")
     with open(save_path, "wb") as f:
         pickle.dump(res, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -353,6 +356,7 @@ def parse_args():
     parser.add_argument('--grad_clip_value', type=float, default=10.0, help='the gradient clipping value')
     parser.add_argument('--init_weight_type', type=str, default="good", choices=["good", "simple", "bad"], help='weight init scheme')
     parser.add_argument('--exp_id', type=str, default="", help='experiment id')
+    parser.add_argument('--n_worker', type=int, default=0, help='number of workers for dataloader')
     parser.add_argument('--cuda', action='store_true', help='enables cuda')
     parser.add_argument('--outf', default='data', help='folder to output images and model checkpoints')
     return parser
