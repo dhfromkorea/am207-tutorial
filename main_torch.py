@@ -64,7 +64,6 @@ class DeepFFN(nn.Module):
         self.model.apply(self.initialize_weight)
 
 
-
         self.opt = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
         # output layer implicitly defined by this
         self.criterion = nn.CrossEntropyLoss()
@@ -74,12 +73,30 @@ class DeepFFN(nn.Module):
         self._gamma = gamma
         self._eta = eta
 
-        if self.grad_noise:
-            for m in self.model.modules():
+        #if self.grad_noise:
+        #    for m in self.model.modules():
+        #        classname = m.__class__.__name__
+        #        if classname.find("Linear") != -1:
+        #            m.register_backward_hook(self.add_grad_noise)
 
-                classname = m.__class__.__name__
-                if classname.find("Linear") != -1:
-                    m.register_backward_hook(self.add_grad_noise)
+        def init_weights(m):
+            if type(m) == nn.Linear:
+
+                if self._init_weight_type == "good":
+                    # he 2015
+                    torch.nn.init.kaiming_normal(m.weight, mode='fan_out')
+                    # it seems you don't initialize bias
+                elif self._init_weight_type == "bad":
+                    # zero init
+                    m.weight.data.fill_(0)
+                    #m.bias.data.zero_()
+                elif self._init_weight_type == "simple":
+                    # gaussian (0, 0.1^2)
+                    torch.nn.init.normal(m.weight, mean=0, std=0.1)
+                    #torch.nn.init.normal(m.bias, mean=0, std=0.1)
+                else:
+                    pass
+        self.model.apply(init_weights)
 
 
         self._grad_clip = grad_clip
@@ -325,7 +342,7 @@ def main(args):
                   hidden_dim=50,
                   output_dim=10,
                   n_layer=20,
-                  learning_rate=1e-2,
+                  learning_rate=args.lr,
                   set_gpu=set_gpu,
                   grad_noise=grad_noise,
                   gamma=gamma,
