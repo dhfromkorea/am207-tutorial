@@ -123,12 +123,23 @@ class DeepFFN(nn.Module):
             if self._grad_clip:
                 clip_grad_norm(self.model.parameters(), self._grad_clip_value, self._grad_clip_norm)
 
+            #is_nan = np.sum([np.any(np.isnan(p.grad.data.numpy())) for p in self.model.parameters()])
+            #if is_nan:
+            #    import pdb;pdb.set_trace()
+
+            #for layer in self.model.modules():
+            #   if isinstance(layer, nn.Linear):
+            #        print(layer)
+            #        grad = layer.weight.data.numpy()
+            #        print("max:{}\tmin:{}\tavg:{}".format(grad.max(), grad.min(), grad.mean()))
+
             self.opt.step()
             self._step += 1
 
             # debug
             if np.isnan(loss.data[0]):
                 raise Exception("gradient exploded or vanished: try clipping gradient")
+
 
             if batch_idx % 100 == 0:
                 sys.stdout.flush()
