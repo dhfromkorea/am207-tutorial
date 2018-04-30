@@ -61,7 +61,7 @@ class DeepFFN(nn.Module):
         self.model.add_module("fc{}".format(n_layer), nn.Linear(hidden_dim, output_dim))
 
         self._init_weight_type = init_weight_type
-        self.model.apply(self.initialize_weight)
+        #self.model.apply(self.initialize_weight)
 
 
         self.opt = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
