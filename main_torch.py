@@ -17,6 +17,11 @@ from torch.nn.utils import clip_grad_norm
 import torchvision.transforms as transforms
 
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+plt.style.use("bmh")
+
 
 DATA_PATH = "data"
 
@@ -337,6 +342,8 @@ def main(args):
                   debug=args.debug)
 
     res = {}
+    res["exp_id"] = args.exp_id
+    res["n_epoch"] = args.n_epoch
     res["train_loss"] = []
     res["val_loss"] = []
     res["val_accuracy"] = []
@@ -349,11 +356,41 @@ def main(args):
         res["val_loss"].append(loss_v)
         res["val_accuracy"].append(acc_v)
 
+    plot_accuracy(res, show=False)
 
     save_path = os.path.join(DATA_PATH, exp_id + ".pkl")
     with open(save_path, "wb") as f:
         pickle.dump(res, f, protocol=pickle.HIGHEST_PROTOCOL)
 
+def plot_accuracy(res, show=True):
+    # train loss
+    n_epoch, exp_id = res["n_epoch"], res["exp_id"]
+    plt.figure(figsize=(7,7))
+    plt.title("Training: {}".format(exp_id), fontsize=15.0)
+    plt.plot(range(1, n_epoch + 1), res["train_loss"], c="r", linestyle="--", marker="o")
+    plt.xlabel("Epoch", fontsize=15.0)
+    plt.ylabel("Loss", fontsize=15.0)
+
+
+    if show:
+        plt.show()
+
+    plt.savefig("data/{}_train_loss".format(exp_id), format="png", bbox_inches="tight")
+    plt.close()
+
+    # validation accuracy
+
+    plt.figure(figsize=(7,7))
+    plt.title("Validation: {}".format(exp_id), fontsize=15.0)
+    plt.plot(range(1, n_epoch + 1), res["val_accuracy"], c="b", linestyle="--", marker="o")
+    plt.xlabel("Epoch", fontsize=15.0)
+    plt.ylabel("Accuracy", fontsize=15.0)
+
+    if show:
+        plt.show()
+
+    plt.savefig("data/{}_val_accuracy".format(exp_id), format="png", bbox_inches="tight")
+    plt.close()
 
 def parse_args():
     parser = argparse.ArgumentParser()
