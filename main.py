@@ -375,7 +375,7 @@ def plot_accuracy(res, show=True):
     if show:
         plt.show()
 
-    plt.savefig("data/{}_train_loss".format(exp_id), format="png", bbox_inches="tight")
+    plt.savefig("data/{}_train_loss.png".format(exp_id), format="png", bbox_inches="tight")
     plt.close()
 
     # validation accuracy
@@ -389,7 +389,7 @@ def plot_accuracy(res, show=True):
     if show:
         plt.show()
 
-    plt.savefig("data/{}_val_accuracy".format(exp_id), format="png", bbox_inches="tight")
+    plt.savefig("data/{}_val_accuracy.png".format(exp_id), format="png", bbox_inches="tight")
     plt.close()
 
 def parse_args():
