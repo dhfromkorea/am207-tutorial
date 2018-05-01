@@ -35,8 +35,9 @@ class DeepFFN(nn.Module):
                        grad_clip,
                        grad_clip_norm,
                        grad_clip_value,
-                       init_weight_type
-                       ):
+                       init_weight_type,
+                       simple_init_std,
+                       debug):
         """TODO: to be defined1.
 
         Parameters
@@ -52,6 +53,8 @@ class DeepFFN(nn.Module):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.set_gpu = set_gpu
+        self.debug = debug
+        self.simple_init_std = simple_init_std
 
         self.model = nn.Sequential()
         self.model.add_module("input", nn.Linear(input_dim, hidden_dim))
@@ -61,7 +64,7 @@ class DeepFFN(nn.Module):
         self.model.add_module("fc{}".format(n_layer), nn.Linear(hidden_dim, output_dim))
 
         self._init_weight_type = init_weight_type
-        #self.model.apply(self.initialize_weight)
+        self.model.apply(self.initialize_weight)
 
 
         self.opt = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
@@ -73,30 +76,12 @@ class DeepFFN(nn.Module):
         self._gamma = gamma
         self._eta = eta
 
-        #if self.grad_noise:
-        #    for m in self.model.modules():
-        #        classname = m.__class__.__name__
-        #        if classname.find("Linear") != -1:
-        #            m.register_backward_hook(self.add_grad_noise)
+        if self.grad_noise:
+            for m in self.model.modules():
+                classname = m.__class__.__name__
+                if classname.find("Linear") != -1:
+                    m.register_backward_hook(self.add_grad_noise)
 
-        def init_weights(m):
-            if type(m) == nn.Linear:
-
-                if self._init_weight_type == "good":
-                    # he 2015
-                    torch.nn.init.kaiming_normal(m.weight, mode='fan_out')
-                    # it seems you don't initialize bias
-                elif self._init_weight_type == "bad":
-                    # zero init
-                    m.weight.data.fill_(0)
-                    #m.bias.data.zero_()
-                elif self._init_weight_type == "simple":
-                    # gaussian (0, 0.1^2)
-                    torch.nn.init.normal(m.weight, mean=0, std=0.1)
-                    #torch.nn.init.normal(m.bias, mean=0, std=0.1)
-                else:
-                    pass
-        self.model.apply(init_weights)
 
 
         self._grad_clip = grad_clip
@@ -144,11 +129,14 @@ class DeepFFN(nn.Module):
             #if is_nan:
             #    import pdb;pdb.set_trace()
 
-            #for layer in self.model.modules():
-            #   if isinstance(layer, nn.Linear):
-            #        print(layer)
-            #        grad = layer.weight.data.numpy()
-            #        print("max:{}\tmin:{}\tavg:{}".format(grad.max(), grad.min(), grad.mean()))
+
+            if self.debug and batch_idx % 10 == 0:
+                for layer in self.model.modules():
+                   if isinstance(layer, nn.Linear):
+                        weight = layer.weight.data.numpy()
+                        print("max:{}\tmin:{}\tavg:{}".format(weight.max(), weight.min(), weight.mean()))
+                        grad = layer.weight.grad.data.numpy()
+                        print("max:{}\tmin:{}\tavg:{}".format(grad.max(), grad.min(), grad.mean()))
 
             self.opt.step()
             self._step += 1
@@ -264,8 +252,7 @@ class DeepFFN(nn.Module):
         TODO
 
         """
-        classname = module.__class__.__name__
-        if classname.find("Linear") != -1:
+        if type(module) == nn.Linear:
             if self._init_weight_type == "good":
                 # he 2015
                 torch.nn.init.kaiming_normal(module.weight, mode='fan_out')
@@ -273,11 +260,11 @@ class DeepFFN(nn.Module):
             elif self._init_weight_type == "bad":
                 # zero init
                 module.weight.data.fill_(0)
-                module.bias.data.zero_()
+                #module.bias.data.zero_()
             elif self._init_weight_type == "simple":
                 # gaussian (0, 0.1^2)
-                torch.nn.init.normal(module.weight, mean=0, std=0.1)
-                torch.nn.init.normal(module.bias, mean=0, std=0.1)
+                torch.nn.init.normal(module.weight, mean=0, std=self.simple_init_std)
+                #torch.nn.init.normal(module.bias, mean=0, std=0.1)
             else:
                 pass
 
@@ -351,7 +338,8 @@ def main(args):
                   grad_clip=grad_clip,
                   grad_clip_norm=grad_clip_norm,
                   grad_clip_value=grad_clip_value,
-                  init_weight_type=init_weight_type)
+                  init_weight_type=init_weight_type,
+                  debug=args.debug)
 
     res = {}
     res["train_loss"] = []
@@ -387,6 +375,7 @@ def parse_args():
     parser.add_argument('--exp_id', type=str, default="", help='experiment id')
     parser.add_argument('--n_worker', type=int, default=0, help='number of workers for dataloader')
     parser.add_argument('--cuda', action='store_true', help='enables cuda')
+    parser.add_argument('--debug', action='store_true', help='enables debug mode')
     parser.add_argument('--outf', default='data', help='folder to output images and model checkpoints')
     return parser
 
