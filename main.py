@@ -356,7 +356,7 @@ def main(args):
         res["val_loss"].append(loss_v)
         res["val_accuracy"].append(acc_v)
 
-    plot_accuracy(res, show=False)
+    plot_accuracy(res, show=True)
 
     save_path = os.path.join(DATA_PATH, exp_id + ".pkl")
     with open(save_path, "wb") as f:
@@ -385,6 +385,7 @@ def plot_accuracy(res, show=True):
     plt.plot(range(1, n_epoch + 1), res["val_accuracy"], c="b", linestyle="--", marker="o")
     plt.xlabel("Epoch", fontsize=15.0)
     plt.ylabel("Accuracy", fontsize=15.0)
+    plt.ylim(0, 100)
 
     if show:
         plt.show()
