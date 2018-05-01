@@ -27,7 +27,7 @@ class DeepFFN(nn.Module):
                        hidden_dim,
                        output_dim,
                        n_layer,
-                       learning_rate=,
+                       learning_rate,
                        set_gpu,
                        grad_noise,
                        gamma,
