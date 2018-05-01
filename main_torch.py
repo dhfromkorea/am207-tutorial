@@ -132,11 +132,16 @@ class DeepFFN(nn.Module):
 
             if self.debug and batch_idx % 10 == 0:
                 for layer in self.model.modules():
-                   if isinstance(layer, nn.Linear):
-                        weight = layer.weight.data.numpy()
-                        print("max:{}\tmin:{}\tavg:{}".format(weight.max(), weight.min(), weight.mean()))
-                        grad = layer.weight.grad.data.numpy()
-                        print("max:{}\tmin:{}\tavg:{}".format(grad.max(), grad.min(), grad.mean()))
+                    if np.random.rand() > 0.95:
+                        if isinstance(layer, nn.Linear):
+                            weight = layer.weight.data.numpy()
+                            print("========================")
+                            print("weight\n")
+                            print("max:{}\tmin:{}\tavg:{}\n".format(weight.max(), weight.min(), weight.mean()))
+                            grad = layer.weight.grad.data.numpy()
+                            print("grad\n")
+                            print("max:{}\tmin:{}\tavg:{}\n".format(grad.max(), grad.min(), grad.mean()))
+                            print("=========================")
 
             self.opt.step()
             self._step += 1
