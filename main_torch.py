@@ -37,6 +37,7 @@ class DeepFFN(nn.Module):
                        grad_clip_value,
                        init_weight_type,
                        simple_init_std,
+                       weight_decay,
                        debug):
         """TODO: to be defined1.
 
@@ -67,7 +68,9 @@ class DeepFFN(nn.Module):
         self.model.apply(self.initialize_weight)
 
 
-        self.opt = torch.optim.SGD(self.model.parameters(), lr=learning_rate)
+        self.opt = torch.optim.SGD(self.model.parameters(),
+                                   lr=learning_rate,
+                                   weight_decay=weight_decay)
         # output layer implicitly defined by this
         self.criterion = nn.CrossEntropyLoss()
 
@@ -345,6 +348,7 @@ def main(args):
                   grad_clip_value=grad_clip_value,
                   init_weight_type=init_weight_type,
                   simple_init_std=args.simple_init_std,
+                  weight_decay=args.weight_decay,
                   debug=args.debug)
 
     res = {}
@@ -383,6 +387,7 @@ def parse_args():
     parser.add_argument('--cuda', action='store_true', help='enables cuda')
     parser.add_argument('--debug', action='store_true', help='enables debug mode')
     parser.add_argument('--simple_init_std', type=float, default=0.1, help='std for simple init')
+    parser.add_argument('--weight_decay', type=float, default=0.0, help='weight decay for sgd')
     parser.add_argument('--outf', default='data', help='folder to output images and model checkpoints')
     return parser
 
