@@ -110,7 +110,6 @@ class DeepFFN(nn.Module):
         """
         self.model.train()
         total_loss = 0.0
-        #loss_list = []
         for batch_idx, (data, target) in enumerate(train_loader):
             if self.set_gpu:
                 data, target = Variable(data).cuda(), Variable(target).cuda()
@@ -127,10 +126,6 @@ class DeepFFN(nn.Module):
 
             if self._grad_clip:
                 clip_grad_norm(self.model.parameters(), self._grad_clip_value, self._grad_clip_norm)
-
-            #is_nan = np.sum([np.any(np.isnan(p.grad.data.numpy())) for p in self.model.parameters()])
-            #if is_nan:
-            #    import pdb;pdb.set_trace()
 
 
             if self.debug and batch_idx % 10 == 0:
@@ -149,7 +144,6 @@ class DeepFFN(nn.Module):
             self.opt.step()
             self._step += 1
 
-            # debug
             if np.isnan(loss.data[0]):
                 raise Exception("gradient exploded or vanished: try clipping gradient")
 
@@ -160,11 +154,9 @@ class DeepFFN(nn.Module):
                     epoch + 1, batch_idx * len(data), len(train_loader.dataset),
                     100. * batch_idx / len(train_loader), loss.data[0]))
 
-            #loss_list.append(loss.data[0])
             total_loss += loss.data[0]
 
         return total_loss/len(train_loader)
-        #return np.mean(loss_list), loss_list
 
 
     def validate(self, val_loader):
@@ -197,7 +189,6 @@ class DeepFFN(nn.Module):
             pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.data.view_as(pred)).sum()
 
-        #val_loss /= len(val_loader.dataset)
         val_loss /= len(val_loader)
 
         accuracy = 100. * correct / len(val_loader.dataset)
@@ -221,10 +212,7 @@ class DeepFFN(nn.Module):
 
         """
 
-        # make this a variable
         std = np.sqrt(self._eta / (1 + self._step)**self._gamma)
-        #print("std", std)
-        #print("step", self._step)
         return Variable(grad.data.new(grad.size()).normal_(0, std=std))
 
 
@@ -242,9 +230,6 @@ class DeepFFN(nn.Module):
         """
         _, _, grad_i = grad_i_t[0], grad_i_t[1], grad_i_t[2]
         noise = self._compute_grad_noise(grad_i)
-        #print("noise avg", noise.mean())
-        #print("grad avg", grad_i.mean())
-        #print("grad norm", torch.norm(grad_i, self._grad_clip_norm))
         return (grad_i_t[0], grad_i_t[1], grad_i + noise)
 
 
