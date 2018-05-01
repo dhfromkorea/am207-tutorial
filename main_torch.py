@@ -339,7 +339,7 @@ def main(args):
                   grad_clip_norm=grad_clip_norm,
                   grad_clip_value=grad_clip_value,
                   init_weight_type=init_weight_type,
-                  simple_init_std=simple_init_std,
+                  simple_init_std=args.simple_init_std,
                   debug=args.debug)
 
     res = {}
@@ -377,6 +377,7 @@ def parse_args():
     parser.add_argument('--n_worker', type=int, default=0, help='number of workers for dataloader')
     parser.add_argument('--cuda', action='store_true', help='enables cuda')
     parser.add_argument('--debug', action='store_true', help='enables debug mode')
+    parser.add_argument('--simple_init_std', type=float, default=0.1, help='std for simple init')
     parser.add_argument('--outf', default='data', help='folder to output images and model checkpoints')
     return parser
 
