@@ -1,1 +1,14 @@
-# am207-tutorial
+# am207 project
+
+The aim of the project is to explain and reproduce the result of Adding Gradient Noise Improves Learning for Very Deep Networks: [link](https://arxiv.org/abs/1511.06807).
+
+
+## getting started
+
+```bash
+# to run all the experiments
+bash run.sh
+
+# to run a specific experiment
+python3 main.py --batch_size 1 --grad_noise --eta 0.01 --grad_clip --grad_clip_value 10.0 --init_weight_type "good" --exp_id "exp5_sgd_noise" --lr 0.1
+```
