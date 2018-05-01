@@ -361,7 +361,7 @@ def parse_args():
     parser.add_argument('--n_epoch', type=int, default=10, help='number of epochs')
     parser.add_argument('--lr', type=float, default=0.01, help='learning rate, default=0.01')
     parser.add_argument('--grad_noise', action='store_true', help='add gradient noise')
-    parser.add_argument('--eta', type=float, default=0.01, choices=[0.01, 0.3, 1.0], help='eta')
+    parser.add_argument('--eta', type=float, default=0.01, help='eta')
     parser.add_argument('--gamma', type=float, default=0.55, help='set gamme for guassian noise')
     parser.add_argument('--grad_clip', action='store_true', help='clip gradient')
     parser.add_argument('--grad_clip_norm', type=int, default=2, help='norm of the gradient clipping, default: l2')
