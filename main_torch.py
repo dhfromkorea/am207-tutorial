@@ -201,7 +201,8 @@ class DeepFFN(nn.Module):
             pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.data.view_as(pred)).sum()
 
-        val_loss /= len(val_loader.dataset)
+        #val_loss /= len(val_loader.dataset)
+        val_loss /= len(val_loader)
 
         accuracy = 100. * correct / len(val_loader.dataset)
 
