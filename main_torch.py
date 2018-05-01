@@ -26,16 +26,16 @@ class DeepFFN(nn.Module):
     def __init__(self, input_dim,
                        hidden_dim,
                        output_dim,
-                       n_layer=20,
-                       learning_rate=1e-3,
-                       set_gpu=False,
-                       grad_noise=True,
-                       gamma=0.55,
-                       eta=0.3,
-                       grad_clip=False,
-                       grad_clip_norm=2,
-                       grad_clip_value=100.0,
-                       init_weight_type="good"
+                       n_layer,
+                       learning_rate=,
+                       set_gpu,
+                       grad_noise,
+                       gamma,
+                       eta,
+                       grad_clip,
+                       grad_clip_norm,
+                       grad_clip_value,
+                       init_weight_type
                        ):
         """TODO: to be defined1.
 
@@ -225,7 +225,7 @@ class DeepFFN(nn.Module):
         """
 
         # make this a variable
-        std = self._eta / (1 + self._step)**self._gamma
+        std = np.sqrt(self._eta / (1 + self._step)**self._gamma)
         #print("std", std)
         #print("step", self._step)
         return Variable(grad.data.new(grad.size()).normal_(0, std=std))
