@@ -339,6 +339,7 @@ def main(args):
                   grad_clip_norm=grad_clip_norm,
                   grad_clip_value=grad_clip_value,
                   init_weight_type=init_weight_type,
+                  simple_init_std=simple_init_std,
                   debug=args.debug)
 
     res = {}
